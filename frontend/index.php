@@ -21,6 +21,9 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = ITEMS_PER_PAGE;
 $offset = ($page - 1) * $limit;
 
+// Debug query
+$debugQuery = true;
+
 // Query untuk total items
 $whereClause = [];
 $params = [];
@@ -35,36 +38,84 @@ if ($search) {
     $params[] = "%$search%";
 }
 
+// Hanya tampilkan produk yang memiliki minimal satu varian dengan stok > 0
+$whereClause[] = "EXISTS (SELECT 1 FROM item_variants iv WHERE iv.item_id = i.id AND iv.stok_total > 0)";
+
+// Filter placeholder produk
+$whereClause[] = "i.nama_baju NOT LIKE '_kategori_placeholder'";
+$whereClause[] = "i.nama_baju IS NOT NULL";
+
 $whereSql = '';
 if (!empty($whereClause)) {
     $whereSql = "WHERE " . implode(" AND ", $whereClause);
 }
 
-$totalQuery = $db->fetchOne(
-    "SELECT COUNT(DISTINCT i.id) as total 
-     FROM items i 
-     $whereSql",
-    $params
-);
-$total = $totalQuery['total'];
+// Urutan tampilan
+$sort = isset($_GET['sort']) ? $_GET['sort'] : 'featured';
+switch ($sort) {
+    case 'price_low':
+        $orderBy = "MIN(iv.harga) ASC";
+        break;
+    case 'price_high':
+        $orderBy = "MIN(iv.harga) DESC";
+        break;
+    case 'alphabetical':
+        $orderBy = "i.nama_baju ASC";
+        break;
+    case 'newest':
+        $orderBy = "i.id DESC"; // Produk terbaru di atas
+        break;
+    case 'featured':
+    default:
+        // Cek apakah kolom is_featured ada
+        try {
+            $checkColumn = $db->fetchOne("SHOW COLUMNS FROM items LIKE 'is_featured'");
+            if ($checkColumn) {
+                $orderBy = "i.is_featured DESC, i.id DESC"; // Produk unggulan di atas, kemudian terbaru
+            } else {
+                $orderBy = "i.id DESC"; // Fallback ke ordering by ID jika is_featured tidak ada
+            }
+        } catch (Exception $e) {
+            // Jika error (misal dengan SQLite yang tidak mendukung SHOW COLUMNS)
+            // atau jika terjadi error lain, fallback ke pengurutan berdasarkan ID
+            $orderBy = "i.id DESC";
+        }
+        break;
+}
+
+// Build query untuk total items
+$totalQuery = "SELECT COUNT(DISTINCT i.id) as total 
+               FROM items i 
+               $whereSql";
+
+$totalResult = $db->fetchOne($totalQuery, $params);
+$total = $totalResult['total'];
 $totalPages = ceil($total / $limit);
 
-$params = array_merge($params, [$limit, $offset]);
-$items = $db->fetchAll(
-    "SELECT i.*, 
-            GROUP_CONCAT(DISTINCT iv.ukuran) as ukuran_tersedia,
-            MIN(iv.harga) as harga_min,
-            MAX(iv.harga) as harga_max,
-            MIN(iv.dp) as dp_min,
-            MAX(iv.dp) as dp_max
-     FROM items i
-     LEFT JOIN item_variants iv ON i.id = iv.item_id
-     $whereSql
-     GROUP BY i.id
-     ORDER BY i.nama_baju
-     LIMIT ? OFFSET ?",
-    $params
-);
+// Build query untuk items dengan pagination
+$itemsQuery = "SELECT i.*, 
+        GROUP_CONCAT(DISTINCT iv.ukuran) as ukuran_tersedia,
+        MIN(iv.harga) as harga_min,
+        MAX(iv.harga) as harga_max,
+        MIN(iv.dp) as dp_min,
+        MAX(iv.dp) as dp_max
+ FROM items i
+ LEFT JOIN item_variants iv ON i.id = iv.item_id
+ $whereSql
+ GROUP BY i.id
+ ORDER BY $orderBy
+ LIMIT ? OFFSET ?";
+
+// Tambahkan parameter limit dan offset ke array params
+$params[] = $limit;
+$params[] = $offset;
+
+if ($debugQuery) {
+    error_log("Query Items: " . $itemsQuery);
+    error_log("Params: " . print_r($params, true));
+}
+
+$items = $db->fetchAll($itemsQuery, $params);
 
 // Ambil daftar kategori untuk filter
 $categories = $db->fetchAll(
@@ -100,7 +151,7 @@ $categories = $db->fetchAll(
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800"><?= APP_NAME ?></h1>
+                        <h1 class="text-xl font-bold text-gray-800">Pearls Bridal</h1>
                     </div>
                 </div>
             </div>
@@ -142,6 +193,22 @@ $categories = $db->fetchAll(
                         <?php endforeach; ?>
                     </select>
                 </div>
+                
+                <!-- Pengurutan -->
+                <div class="flex-1">
+                    <label for="sort" class="block text-sm font-medium text-gray-700">
+                        Urutkan
+                    </label>
+                    <select name="sort" 
+                            id="sort"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="newest" <?= ($sort === 'newest') ? 'selected' : '' ?>>Terbaru</option>
+                        <option value="price_low" <?= ($sort === 'price_low') ? 'selected' : '' ?>>Harga Terendah</option>
+                        <option value="price_high" <?= ($sort === 'price_high') ? 'selected' : '' ?>>Harga Tertinggi</option>
+                        <option value="alphabetical" <?= ($sort === 'alphabetical') ? 'selected' : '' ?>>A-Z</option>
+                        <option value="featured" <?= ($sort === 'featured') ? 'selected' : '' ?>>Unggulan</option>
+                    </select>
+                </div>
 
                 <!-- Submit Button -->
                 <div>
@@ -158,7 +225,7 @@ $categories = $db->fetchAll(
         <?= showFlashMessage() ?>
 
         <!-- Items Grid -->
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
             <?php if (empty($items)): ?>
             <div class="col-span-full text-center py-12">
                 <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
@@ -167,7 +234,8 @@ $categories = $db->fetchAll(
             <?php else: ?>
                 <?php foreach ($items as $item): ?>
                 <?php
-                    $ukuranArray = explode(',', $item['ukuran_tersedia']);
+                    // Pastikan ukuran_tersedia tidak null sebelum di-explode
+                    $ukuranArray = !empty($item['ukuran_tersedia']) ? explode(',', $item['ukuran_tersedia']) : [];
                     $variants = $db->fetchAll(
                         "SELECT iv.*, 
                                 COALESCE(ia.stok_terpakai, 0) as stok_terpakai
@@ -181,39 +249,52 @@ $categories = $db->fetchAll(
                          WHERE iv.item_id = ?",
                         [$tanggal_sewa, $item['id']]
                     );
+
+                    // Cek apakah semua varian stok habis
+                    $allStokHabis = true;
+                    foreach ($variants as $variant) {
+                        $stokTotal = (int)$variant['stok_total'];
+                        $stokTerpakai = (int)$variant['stok_terpakai'];
+                        if ($stokTerpakai < 0) $stokTerpakai = 0;
+                        $stokTersedia = $stokTotal - $stokTerpakai;
+                        if ($stokTersedia > 0) {
+                            $allStokHabis = false;
+                            break;
+                        }
+                    }
                 ?>
-                <div class="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200">
+                <div class="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200 text-[10px] p-0.5">
                     <!-- Gambar -->
-                    <div class="relative">
+                    <div class="relative" style="height: 189px; overflow: hidden;">
                         <?php if ($item['foto']): ?>
                         <img src="<?= BASE_URL ?>/assets/images/<?= htmlspecialchars($item['foto']) ?>"
                              alt="<?= htmlspecialchars($item['nama_baju']) ?>"
-                             class="w-full h-48 object-cover">
+                             style="width: 100%; height: 100%; object-fit: contain; object-position: center;">
                         <?php else: ?>
-                        <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                            <i class="fas fa-tshirt text-gray-400 text-4xl"></i>
+                        <div class="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-tshirt text-gray-400 text-2xl"></i>
                         </div>
                         <?php endif; ?>
                     </div>
 
                     <!-- Informasi -->
-                    <div class="p-4 space-y-3">
-                        <h3 class="text-lg font-medium text-gray-900">
+                    <div class="p-1.5 space-y-0.5">
+                        <h3 class="text-xs font-medium text-gray-900">
                             <?= htmlspecialchars($item['nama_baju']) ?>
                         </h3>
                         
-                        <p class="text-sm text-gray-500">
+                        <p class="text-[10px] text-gray-500">
                             <?= htmlspecialchars($item['kategori']) ?>
                         </p>
 
                         <?php if ($item['deskripsi']): ?>
-                        <p class="text-sm text-gray-600">
+                        <p class="text-[10px] text-gray-600">
                             <?= nl2br(htmlspecialchars($item['deskripsi'])) ?>
                         </p>
                         <?php endif; ?>
 
                         <!-- Harga -->
-                        <div class="text-sm">
+                        <div class="text-[10px]">
                             <p class="font-medium text-gray-900">
                                 Harga: <?= formatRupiah($item['harga_min']) ?>
                                 <?php if ($item['harga_max'] > $item['harga_min']): ?>
@@ -229,16 +310,22 @@ $categories = $db->fetchAll(
                         </div>
 
                         <!-- Ukuran dan Stok -->
-                        <div class="space-y-2">
-                            <p class="text-sm font-medium text-gray-700">Ukuran Tersedia:</p>
-                            <div class="flex flex-wrap gap-2">
+                        <div class="space-y-0.5">
+                            <p class="text-[10px] font-medium text-gray-700">Ukuran Tersedia:</p>
+                            <div class="flex flex-wrap gap-0.5">
                                 <?php foreach ($variants as $variant): ?>
-                                <?php $stokTersedia = $variant['stok_total'] - $variant['stok_terpakai']; ?>
+                                <?php 
+                                    $stokTotal = (int)$variant['stok_total'];
+                                    $stokTerpakai = (int)$variant['stok_terpakai'];
+                                    if ($stokTerpakai < 0) $stokTerpakai = 0;
+                                    $stokTersedia = $stokTotal - $stokTerpakai;
+                                    if ($stokTersedia < 0) $stokTersedia = 0;
+                                ?>
                                 <div class="inline-flex flex-col items-center">
-                                    <span class="px-3 py-1 text-sm font-medium <?= $stokTersedia > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?> rounded-md">
+                                    <span class="px-1.5 py-0.5 text-[10px] font-medium <?= $stokTersedia > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?> rounded-md">
                                         <?= $variant['ukuran'] ?>
                                     </span>
-                                    <span class="text-xs text-gray-500 mt-1">
+                                    <span class="text-[10px] text-gray-500 mt-0.5">
                                         Stok: <?= $stokTersedia ?>
                                     </span>
                                 </div>
@@ -248,13 +335,19 @@ $categories = $db->fetchAll(
                     </div>
 
                     <!-- Tombol -->
-                    <div class="p-4">
-                        <a href="order.php?item_id=<?= $item['id'] ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>"
-                           class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
-                            <i class="fas fa-shopping-cart mr-2"></i>
-                            <span>Pesan Sekarang</span>
-                        </a>
-                    </div>
+                    <?php if ($allStokHabis): ?>
+                        <div class="p-1.5 text-center">
+                            <span class="inline-block bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full text-[10px] font-bold">Stok Habis</span>
+                        </div>
+                    <?php else: ?>
+                        <div class="p-0.5">
+                            <a href="order.php?item_id=<?= $item['id'] ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>"
+                               class="w-full inline-flex justify-center items-center px-1.5 py-0.5 border border-transparent rounded-md shadow-sm text-[10px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+                                <i class="fas fa-shopping-cart mr-0.5"></i>
+                                <span>Pesan Sekarang</span>
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -265,13 +358,13 @@ $categories = $db->fetchAll(
         <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-6">
             <div class="flex-1 flex justify-between sm:hidden">
                 <?php if ($page > 1): ?>
-                <a href="?page=<?= $page - 1 ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>" 
+                <a href="?page=<?= $page - 1 ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>&sort=<?= urlencode($sort) ?>" 
                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Previous
                 </a>
                 <?php endif; ?>
                 <?php if ($page < $totalPages): ?>
-                <a href="?page=<?= $page + 1 ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>" 
+                <a href="?page=<?= $page + 1 ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>&sort=<?= urlencode($sort) ?>" 
                    class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Next
                 </a>
@@ -292,7 +385,7 @@ $categories = $db->fetchAll(
                 <div>
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?page=<?= $i ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>" 
+                        <a href="?page=<?= $i ?>&tanggal_sewa=<?= urlencode($tanggal_sewa) ?>&kategori=<?= urlencode($kategori) ?>&sort=<?= urlencode($sort) ?>" 
                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50
                                   <?= $i === $page ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : '' ?>">
                             <?= $i ?>

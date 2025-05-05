@@ -177,13 +177,21 @@ if (!$rental) {
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Tanggal Sewa</dt>
                                     <dd class="mt-1 text-sm text-gray-900">
-                                        <?= date('d/m/Y', strtotime($rental['tanggal_sewa'])) ?>
+                                        <?= formatTanggalIndo($rental['tanggal_sewa']) ?>
                                     </dd>
                                 </div>
+                                <?php if (!empty($rental['tanggal_booking'])): ?>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Tanggal Booking</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <?= formatTanggalIndo($rental['tanggal_booking']) ?>
+                                    </dd>
+                                </div>
+                                <?php endif; ?>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Tanggal Kembali</dt>
                                     <dd class="mt-1 text-sm text-gray-900">
-                                        <?= date('d/m/Y', strtotime($rental['tanggal_kembali'])) ?>
+                                        <?= formatTanggalIndo($rental['tanggal_kembali']) ?>
                                     </dd>
                                 </div>
                                 <div>
@@ -239,6 +247,28 @@ if (!$rental) {
                             </dl>
                         </div>
                     </div>
+
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">
+                            Catatan
+                        </dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            <?= !empty($rental['catatan']) ? nl2br(htmlspecialchars($rental['catatan'])) : '-' ?>
+                        </dd>
+                    </div>
+                    
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">
+                            Jaminan
+                        </dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            <?php if (!empty($rental['jenis_jaminan'])): ?>
+                                <p><span class="font-medium">Jenis:</span> <?= htmlspecialchars($rental['jenis_jaminan']) ?></p>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </dd>
+                    </div>
                 </div>
 
                 <!-- Barcode -->
@@ -254,8 +284,8 @@ if (!$rental) {
 
                 <!-- Timestamps -->
                 <div class="mt-6 text-sm text-gray-500">
-                    <p>Dibuat pada: <?= date('d/m/Y H:i', strtotime($rental['created_at'])) ?></p>
-                    <p>Terakhir diupdate: <?= date('d/m/Y H:i', strtotime($rental['updated_at'])) ?></p>
+                    <p>Dibuat pada: <?= formatTanggalIndo(substr($rental['created_at'],0,10)) ?> <?= substr($rental['created_at'],11,5) ?></p>
+                    <p>Terakhir diupdate: <?= formatTanggalIndo(substr($rental['updated_at'],0,10)) ?> <?= substr($rental['updated_at'],11,5) ?></p>
                 </div>
             </div>
         </div>

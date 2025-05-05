@@ -1,0 +1,16 @@
+.git\
+.gitignore
+.DS_Store
+Thumbs.db
+*.log
+.sass-cache\
+*.swp
+*.swo
+.cache\
+.idea\
+.vscode\
+*.bak
+*.old
+*~
+deployment\
+netlify.toml

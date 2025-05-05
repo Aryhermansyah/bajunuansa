@@ -1,0 +1,29 @@
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore temp and cache files
+*.log
+.sass-cache/
+*.swp
+*.swo
+.cache/
+
+# Ignore IDE specific directories
+/.idea/
+/.vscode/
+
+# Ignore user uploaded files in development (but keep directory structure)
+/assets/images/*
+!/assets/images/.gitkeep
+
+# Backup files
+*.bak
+*.old
+*~
+
+# Ignore config files with sensitive information
+# config.local.php
+
+# Ignore composer vendor directory
+/vendor/

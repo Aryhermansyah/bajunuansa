@@ -57,6 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $variantId = (int)($_POST['variant_id'] ?? 0);
     $jumlah = (int)($_POST['jumlah'] ?? 0);
     $tanggal_kembali = sanitizeInput($_POST['tanggal_kembali'] ?? '');
+    $tanggal_booking = sanitizeInput($_POST['tanggal_booking'] ?? '');
+    $catatan = sanitizeInput($_POST['catatan'] ?? '');
+    $jenis_jaminan = sanitizeInput($_POST['jenis_jaminan'] ?? '');
     
     $errors = [];
     
@@ -94,13 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rentalId = $db->insert(
                 "INSERT INTO rentals (
                     customer_nama, customer_hp, customer_lokasi,
-                    variant_id, tanggal_sewa, tanggal_kembali,
-                    jumlah, dp_bayar, pelunasan_bayar, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')",
+                    variant_id, tanggal_sewa, tanggal_kembali, tanggal_booking,
+                    jumlah, dp_bayar, pelunasan_bayar, status, catatan,
+                    jenis_jaminan
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
                 [
                     $nama, $hp, $lokasi,
-                    $variantId, $tanggal_sewa, $tanggal_kembali,
-                    $jumlah, $total_dp, $total_pelunasan
+                    $variantId, $tanggal_sewa, $tanggal_kembali, $tanggal_booking,
+                    $jumlah, $total_dp, $total_pelunasan, $catatan,
+                    $jenis_jaminan
                 ]
             );
             
@@ -110,7 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 updateStock($variantId, $date, $jumlah);
             }
             
-            redirect('index.php', 'Pemesanan berhasil dibuat! Silakan tunggu konfirmasi dari admin.', 'success');
+            header('Location: invoice.php?id=' . $rentalId);
+            exit;
         } catch (Exception $e) {
             $errors[] = "Terjadi kesalahan. Silakan coba lagi.";
         }
@@ -143,15 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Navbar -->
     <nav class="bg-white shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800"><?= APP_NAME ?></h1>
-                    </div>
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-800 whitespace-nowrap">Pearls Bridal</h1>
                 </div>
                 <div class="flex items-center">
-                    <a href="index.php" class="text-gray-600 hover:text-gray-900">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali ke Katalog
+                    <a href="index.php" class="text-gray-600 hover:text-gray-900 flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i> <span>Kembali ke Katalog</span>
                     </a>
                 </div>
             </div>
@@ -200,9 +204,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Gambar dan Info Baju -->
                     <div>
                         <?php if ($item['foto']): ?>
-                        <img src="<?= BASE_URL ?>/assets/images/<?= htmlspecialchars($item['foto']) ?>"
-                             alt="<?= htmlspecialchars($item['nama_baju']) ?>"
-                             class="w-full h-64 object-cover rounded-lg">
+                        <div style="height: 300px; overflow: hidden;">
+                            <img src="<?= BASE_URL ?>/assets/images/<?= htmlspecialchars($item['foto']) ?>"
+                                 alt="<?= htmlspecialchars($item['nama_baju']) ?>"
+                                 style="width: 100%; height: 100%; object-fit: contain; object-position: center;">
+                        </div>
                         <?php else: ?>
                         <div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
                             <i class="fas fa-tshirt text-gray-400 text-4xl"></i>
@@ -266,6 +272,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                   required
                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><?= isset($_POST['lokasi']) ? htmlspecialchars($_POST['lokasi']) : '' ?></textarea>
                                     </div>
+
+                                    <div>
+                                        <label for="catatan" class="block text-sm font-medium text-gray-700">
+                                            Catatan
+                                        </label>
+                                        <textarea name="catatan" 
+                                                  id="catatan"
+                                                  rows="3"
+                                                  placeholder="Tuliskan catatan khusus untuk pesanan Anda (opsional)"
+                                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><?= isset($_POST['catatan']) ? htmlspecialchars($_POST['catatan']) : '' ?></textarea>
+                                    </div>
+
+                                    <div>
+                                        <label for="jenis_jaminan" class="block text-sm font-medium text-gray-700">
+                                            Jenis Jaminan <span class="text-red-500">*</span>
+                                        </label>
+                                        <select name="jenis_jaminan" 
+                                                id="jenis_jaminan"
+                                                required
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                            <option value="">-- Pilih Jenis Jaminan --</option>
+                                            <option value="KTP" <?= isset($_POST['jenis_jaminan']) && $_POST['jenis_jaminan'] == 'KTP' ? 'selected' : '' ?>>KTP</option>
+                                            <option value="SIM" <?= isset($_POST['jenis_jaminan']) && $_POST['jenis_jaminan'] == 'SIM' ? 'selected' : '' ?>>SIM</option>
+                                            <option value="Kartu Pelajar" <?= isset($_POST['jenis_jaminan']) && $_POST['jenis_jaminan'] == 'Kartu Pelajar' ? 'selected' : '' ?>>Kartu Pelajar</option>
+                                            <option value="Kartu Keluarga" <?= isset($_POST['jenis_jaminan']) && $_POST['jenis_jaminan'] == 'Kartu Keluarga' ? 'selected' : '' ?>>Kartu Keluarga</option>
+                                            <option value="Lainnya" <?= isset($_POST['jenis_jaminan']) && $_POST['jenis_jaminan'] == 'Lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -284,6 +318,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                value="<?= htmlspecialchars($tanggal_sewa) ?>"
                                                readonly
                                                class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm">
+                                    </div>
+
+                                    <div>
+                                        <label for="tanggal_booking" class="block text-sm font-medium text-gray-700">
+                                            Tanggal Booking <span class="text-xs text-gray-500">(opsional)</span>
+                                        </label>
+                                        <input type="date" 
+                                               name="tanggal_booking" 
+                                               id="tanggal_booking"
+                                               value="<?= isset($_POST['tanggal_booking']) ? htmlspecialchars($_POST['tanggal_booking']) : date('Y-m-d') ?>"
+                                               max="<?= date('Y-m-d', strtotime($tanggal_sewa . ' -1 day')) ?>"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <p class="mt-1 text-xs text-gray-500">Tanggal untuk fitting/booking baju sebelum tanggal sewa.</p>
                                     </div>
 
                                     <div>

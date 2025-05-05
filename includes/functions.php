@@ -29,14 +29,27 @@ function getAvailableStock($variantId, $tanggal) {
 
 function updateStock($variantId, $tanggal, $jumlah) {
     $db = Database::getInstance();
+    $dbType = $db->getDbType();
 
     try {
-        // Coba insert dulu, jika gagal karena sudah ada, lakukan update
-        $db->query(
-            "INSERT OR IGNORE INTO item_availability (variant_id, tanggal, stok_terpakai) 
-             VALUES (?, ?, 0)",
-            [$variantId, $tanggal]
-        );
+        // Gunakan INSERT syntax yang sesuai berdasarkan jenis database
+        if ($dbType === 'mysql') {
+            // Syntax untuk MySQL
+            $db->query(
+                "INSERT IGNORE INTO item_availability (variant_id, tanggal, stok_terpakai) 
+                 VALUES (?, ?, 0)",
+                [$variantId, $tanggal]
+            );
+        } else {
+            // Syntax untuk SQLite
+            $db->query(
+                "INSERT OR IGNORE INTO item_availability (variant_id, tanggal, stok_terpakai) 
+                 VALUES (?, ?, 0)",
+                [$variantId, $tanggal]
+            );
+        }
+        
+        // Update stok terpakai
         $db->query(
             "UPDATE item_availability 
              SET stok_terpakai = stok_terpakai + ? 
@@ -51,6 +64,10 @@ function updateStock($variantId, $tanggal, $jumlah) {
 
 // Fungsi untuk format harga
 function formatRupiah($nominal) {
+    // Pastikan nominal bukan null
+    if ($nominal === null) {
+        $nominal = 0;
+    }
     return 'Rp ' . number_format($nominal, 0, ',', '.');
 }
 
@@ -65,7 +82,8 @@ function getStatusLabel($status) {
     $labels = [
         'pending' => 'Menunggu Konfirmasi',
         'approved' => 'Disetujui',
-        'returned' => 'Dikembalikan'
+        'returned' => 'Dikembalikan',
+        'canceled' => 'Dibatalkan'
     ];
     return $labels[$status] ?? $status;
 }
@@ -85,18 +103,29 @@ function generateBarcode($kodeUnik) {
 // Fungsi untuk upload gambar
 function uploadImage($file, $targetDir = UPLOAD_PATH) {
     if (!isset($file['tmp_name']) || empty($file['tmp_name'])) {
+        error_log("Upload gagal: File tidak ditemukan");
         return false;
     }
 
     // Buat direktori jika belum ada
     if (!file_exists($targetDir)) {
-        mkdir($targetDir, 0777, true);
+        if (!mkdir($targetDir, 0777, true)) {
+            error_log("Upload gagal: Tidak dapat membuat direktori upload " . $targetDir);
+            return false;
+        }
+    }
+
+    // Pastikan direktori dapat ditulis
+    if (!is_writable($targetDir)) {
+        error_log("Upload gagal: Direktori " . $targetDir . " tidak dapat ditulis");
+        return false;
     }
 
     $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     
     // Validasi ekstensi file
     if (!in_array($fileExtension, ALLOWED_EXTENSIONS)) {
+        error_log("Upload gagal: Ekstensi file tidak diizinkan - " . $fileExtension);
         return false;
     }
 
@@ -104,11 +133,15 @@ function uploadImage($file, $targetDir = UPLOAD_PATH) {
     $fileName = uniqid() . '.' . $fileExtension;
     $targetPath = $targetDir . $fileName;
 
+    error_log("Mencoba upload file ke: " . $targetPath);
+
     // Upload file
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+        error_log("Upload berhasil: " . $fileName);
         return $fileName;
     }
 
+    error_log("Upload gagal: Tidak dapat memindahkan file. Error: " . error_get_last()['message']);
     return false;
 }
 
@@ -173,6 +206,29 @@ function redirect($url, $message = '', $type = 'success') {
             'type' => $type
         ];
     }
+    
+    // Cek jika URL sudah absolut (dimulai dengan http:// atau https://)
+    if (strpos($url, 'http://') !== 0 && strpos($url, 'https://') !== 0) {
+        // Deteksi base URL
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'];
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+        
+        // Normalisasi direktori
+        if (substr($scriptDir, -1) !== '/') {
+            $scriptDir .= '/';
+        }
+        
+        // Jika URL dimulai dengan slash, gunakan root domain
+        if (substr($url, 0, 1) === '/') {
+            $url = $protocol . $host . $url;
+        } else {
+            // Gunakan direktori saat ini sebagai basis URL
+            $baseUrl = $protocol . $host . $scriptDir;
+            $url = $baseUrl . $url;
+        }
+    }
+    
     header("Location: $url");
     exit();
 }
@@ -194,4 +250,58 @@ function showFlashMessage() {
         );
     }
     return '';
+}
+
+function reduceStock($variantId, $tanggal, $jumlah) {
+    $db = Database::getInstance();
+    $dbType = $db->getDbType();
+    
+    try {
+        // Pastikan baris ada dengan sintaks yang sesuai database
+        if ($dbType === 'mysql') {
+            // Syntax untuk MySQL
+            $db->query(
+                "INSERT IGNORE INTO item_availability (variant_id, tanggal, stok_terpakai) VALUES (?, ?, 0)",
+                [$variantId, $tanggal]
+            );
+        } else {
+            // Syntax untuk SQLite
+            $db->query(
+                "INSERT OR IGNORE INTO item_availability (variant_id, tanggal, stok_terpakai) VALUES (?, ?, 0)",
+                [$variantId, $tanggal]
+            );
+        }
+        error_log("[reduceStock] variantId=$variantId, tanggal=$tanggal, jumlah=$jumlah");
+        $db->query(
+            "UPDATE item_availability 
+             SET stok_terpakai = CASE WHEN stok_terpakai - ? < 0 THEN 0 ELSE stok_terpakai - ? END
+             WHERE variant_id = ? AND tanggal = ?",
+            [$jumlah, $jumlah, $variantId, $tanggal]
+        );
+        return true;
+    } catch (Exception $e) {
+        error_log('[reduceStock][ERROR] ' . $e->getMessage());
+        return false;
+    }
+}
+
+function reduceStockRange($variantId, $startDate, $endDate, $jumlah) {
+    $dates = getRentalDateRange($startDate, $endDate);
+    error_log("[reduceStockRange] variantId=$variantId, startDate=$startDate, endDate=$endDate, jumlah=$jumlah, dates=" . implode(',', $dates));
+    foreach ($dates as $date) {
+        reduceStock($variantId, $date, $jumlah);
+    }
+}
+
+function formatTanggalIndo($date) {
+    if (!$date || $date === '0000-00-00') return '-';
+    $bulan = [
+        1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    $exp = explode('-', $date);
+    if (count($exp) === 3) {
+        return ltrim($exp[2], '0') . ' ' . $bulan[(int)$exp[1]] . ' ' . $exp[0];
+    }
+    return $date;
 }

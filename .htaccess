@@ -1,6 +1,6 @@
 # Enable PHP extensions
-php_value extension=pdo_mysql
-php_value extension=mysqli
+# Extensions need to be enabled in php.ini, not via php_value in .htaccess
+# Removing the incorrect syntax
 
 # Error reporting
 php_flag display_errors on
