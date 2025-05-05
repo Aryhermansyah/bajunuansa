@@ -6,7 +6,12 @@ require_once '../includes/functions.php';
 session_start();
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    die('ID pesanan tidak valid.');
+    $_SESSION['flash'] = [
+        'message' => 'ID pesanan tidak valid. Silakan periksa kembali link yang Anda kunjungi.',
+        'type' => 'error'
+    ];
+    header('Location: index.php');
+    exit;
 }
 
 $rentalId = (int)$_GET['id'];

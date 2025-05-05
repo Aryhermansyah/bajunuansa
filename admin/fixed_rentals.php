@@ -118,12 +118,65 @@ $rentals_returned = $db->fetchAll(
                 </div>
             </div>
             <!-- Mobile Menu, hidden by default -->
-            <div id="mobile-menu" class="sm:hidden hidden mt-2">
-                <a href="rental_list.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Daftar Semua Pemesanan</a>
-                <a href="fixed_rentals.php" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-700 bg-indigo-50">Daftar Pemesanan Fix</a>
-                <a href="add_rental.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Tambah Penyewaan</a>
-                <a href="view_products.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Daftar Produk</a>
-                <a href="add_product.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Tambah Produk</a>
+            <div id="mobile-menu" class="sm:hidden hidden mt-2 shadow-lg rounded-lg overflow-hidden">
+                <!-- Pesanan Section -->
+                <div class="bg-indigo-50 px-4 py-2">
+                    <span class="text-xs uppercase tracking-wider font-semibold text-indigo-800">Pesanan</span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <a href="rental_list.php" class="flex items-center px-4 py-3 hover:bg-gray-50">
+                        <div class="flex-shrink-0 bg-indigo-100 rounded-md p-2">
+                            <i class="fas fa-list text-indigo-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">Daftar Semua Pemesanan</p>
+                            <p class="text-xs text-gray-500">Lihat semua status pesanan</p>
+                        </div>
+                    </a>
+                    <a href="fixed_rentals.php" class="flex items-center px-4 py-3 bg-indigo-50">
+                        <div class="flex-shrink-0 bg-indigo-500 rounded-md p-2">
+                            <i class="fas fa-clipboard-check text-white"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-indigo-900">Daftar Pemesanan Fix</p>
+                            <p class="text-xs text-indigo-700">Pesanan disetujui & dikembalikan</p>
+                        </div>
+                    </a>
+                    <a href="add_rental.php" class="flex items-center px-4 py-3 hover:bg-gray-50">
+                        <div class="flex-shrink-0 bg-green-100 rounded-md p-2">
+                            <i class="fas fa-plus text-green-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">Tambah Penyewaan</p>
+                            <p class="text-xs text-gray-500">Buat pesanan baru</p>
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- Produk Section -->
+                <div class="bg-indigo-50 px-4 py-2">
+                    <span class="text-xs uppercase tracking-wider font-semibold text-indigo-800">Produk</span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <a href="view_products.php" class="flex items-center px-4 py-3 hover:bg-gray-50">
+                        <div class="flex-shrink-0 bg-purple-100 rounded-md p-2">
+                            <i class="fas fa-tshirt text-purple-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">Daftar Produk</p>
+                            <p class="text-xs text-gray-500">Lihat semua produk</p>
+                        </div>
+                    </a>
+                    <a href="add_product.php" class="flex items-center px-4 py-3 hover:bg-gray-50">
+                        <div class="flex-shrink-0 bg-pink-100 rounded-md p-2">
+                            <i class="fas fa-plus text-pink-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">Tambah Produk</p>
+                            <p class="text-xs text-gray-500">Tambah produk baru</p>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -138,10 +191,10 @@ $rentals_returned = $db->fetchAll(
     </script>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <main class="max-w-7xl mx-auto py-3 px-3 sm:py-6 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-2xl font-bold text-gray-900">
+        <div class="bg-white rounded-lg shadow-sm px-4 py-4 sm:px-4 sm:py-5 mb-4">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
                 Daftar Pemesanan Fix
             </h2>
             <p class="mt-1 text-sm text-gray-600">
@@ -158,45 +211,90 @@ $rentals_returned = $db->fetchAll(
         <?= showFlashMessage() ?>
 
         <!-- Form Pencarian -->
-        <form method="get" class="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Cari nama, kode pesanan, baju, atau HP..." class="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-64">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"><i class="fas fa-search mr-1"></i> Cari</button>
-            <?php if ($search): ?>
-            <a href="fixed_rentals.php" class="ml-2 text-sm text-gray-500 hover:underline">Reset</a>
-            <?php endif; ?>
+        <form method="get" class="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div class="flex flex-col gap-2">
+                <input 
+                    type="text" 
+                    name="search" 
+                    value="<?= htmlspecialchars($search) ?>" 
+                    placeholder="Cari nama, kode pesanan, baju, atau HP..." 
+                    class="border border-gray-300 rounded-md px-3 py-2 w-full text-sm"
+                >
+                <div class="flex items-center gap-2">
+                    <button 
+                        type="submit" 
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm flex-grow sm:flex-grow-0"
+                    >
+                        <i class="fas fa-search mr-1"></i> Cari
+                    </button>
+                    <?php if ($search): ?>
+                    <a href="fixed_rentals.php" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm text-center">
+                        <i class="fas fa-times mr-1"></i> Reset
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
         </form>
 
         <!-- Tabel Disetujui -->
-        <h3 class="text-lg font-bold mb-2 mt-8">Pesanan Disetujui</h3>
+        <h3 class="text-lg font-bold mb-2 mt-6 bg-green-50 px-4 py-2 rounded-t-lg border-l-4 border-green-500">Pesanan Disetujui</h3>
         <div class="overflow-x-auto">
-        <?php include __DIR__.'/table_rental_status.php'; show_rental_table($rentals_approved, 'approved'); ?>
+        <?php 
+        if(!function_exists('show_rental_table')) { 
+            include_once __DIR__.'/table_rental_status.php'; 
+        }
+        show_rental_table($rentals_approved, 'approved'); 
+        ?>
         </div>
         <!-- Tabel Dikembalikan -->
-        <h3 class="text-lg font-bold mb-2 mt-8">Pesanan Dikembalikan</h3>
+        <h3 class="text-lg font-bold mb-2 mt-6 bg-blue-50 px-4 py-2 rounded-t-lg border-l-4 border-blue-500">Pesanan Dikembalikan</h3>
         <div class="overflow-x-auto">
-        <?php show_rental_table($rentals_returned, 'returned'); ?>
+        <?php 
+        if(!function_exists('show_rental_table')) { 
+            include_once __DIR__.'/table_rental_status.php'; 
+        }
+        show_rental_table($rentals_returned, 'returned'); 
+        ?>
         </div>
         <!-- Tabel Dibatalkan -->
-        <h3 class="text-lg font-bold mb-2 mt-8">Pesanan Dibatalkan</h3>
+        <h3 class="text-lg font-bold mb-2 mt-6 bg-red-50 px-4 py-2 rounded-t-lg border-l-4 border-red-500">Pesanan Dibatalkan</h3>
         <div class="overflow-x-auto">
-        <?php show_rental_table($rentals_canceled, 'canceled'); ?>
+        <?php 
+        if(!function_exists('show_rental_table')) { 
+            include_once __DIR__.'/table_rental_status.php'; 
+        }
+        show_rental_table($rentals_canceled, 'canceled'); 
+        ?>
         </div>
 
         <!-- Pagination -->
         <?php if ($totalPages > 1): ?>
-        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div class="flex-1 flex justify-between sm:hidden">
+        <div class="bg-white px-4 py-4 mt-6 flex items-center justify-between border-t border-gray-200 rounded-lg shadow-sm">
+            <div class="w-full flex justify-between items-center">
                 <?php if ($page > 1): ?>
-                <a href="?page=<?= $page - 1 ?>" 
+                <a href="?page=<?= $page - 1 ?><?= $search ? '&search='.urlencode($search) : '' ?>" 
                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Previous
+                    <i class="fas fa-chevron-left mr-1 sm:mr-2"></i> <span class="hidden sm:inline">Sebelumnya</span>
                 </a>
+                <?php else: ?>
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed">
+                    <i class="fas fa-chevron-left mr-1 sm:mr-2"></i> <span class="hidden sm:inline">Sebelumnya</span>
+                </span>
                 <?php endif; ?>
+                
+                <span class="text-sm text-gray-700">
+                    <span class="font-medium"><?= $page ?></span> dari <span class="font-medium"><?= $totalPages ?></span>
+                </span>
+                
                 <?php if ($page < $totalPages): ?>
-                <a href="?page=<?= $page + 1 ?>" 
-                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Next
+                <a href="?page=<?= $page + 1 ?><?= $search ? '&search='.urlencode($search) : '' ?>" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <span class="hidden sm:inline">Berikutnya</span> <i class="fas fa-chevron-right ml-1 sm:ml-2"></i>
                 </a>
+                <?php else: ?>
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed">
+                    <span class="hidden sm:inline">Berikutnya</span> <i class="fas fa-chevron-right ml-1 sm:ml-2"></i>
+                </span>
                 <?php endif; ?>
             </div>
             <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">

@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
+require_once '../includes/cart_functions.php';
 
 session_start();
 
@@ -145,17 +146,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-[#fff5f5]">
+    <style>
+        :root {
+            --pink-main: #EBA1A1;
+            --pink-light: #fde8e8;
+            --pink-dark: #d97c7c;
+        }
+        .bg-custom-pink { background-color: var(--pink-main); }
+        .from-custom-pink { --tw-gradient-from: var(--pink-main); }
+        .to-custom-pink { --tw-gradient-to: var(--pink-dark); }
+        .hover\:from-custom-pink-dark:hover { --tw-gradient-from: var(--pink-dark); }
+        .hover\:to-custom-pink-darker:hover { --tw-gradient-to: #c56e6e; }
+        .text-custom-pink { color: var(--pink-main); }
+        .border-custom-pink { border-color: var(--pink-main); }
+        .border-custom-pink-light { border-color: var(--pink-light); }
+    </style>
     <!-- Navbar -->
-    <nav class="bg-white shadow-sm">
+    <nav class="bg-gradient-to-r from-[#fde8e8] to-[#fad1d1] shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <h1 class="text-xl font-bold text-gray-800 whitespace-nowrap">Pearls Bridal</h1>
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="index.php">
+                            <h1 class="text-xl font-bold text-[#EBA1A1] font-serif">Pearls Bridal</h1>
+                        </a>
+                    </div>
                 </div>
-                <div class="flex items-center">
-                    <a href="index.php" class="text-gray-600 hover:text-gray-900 flex items-center">
-                        <i class="fas fa-arrow-left mr-2"></i> <span>Kembali ke Katalog</span>
+                <div class="flex items-center gap-4">
+                    <a href="cart.php" class="text-[#EBA1A1] hover:text-[#d97c7c] flex items-center">
+                        <i class="fas fa-shopping-cart mr-2"></i> <span>Keranjang</span>
+                        <span class="ml-1 text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full"><?= getCartItemCount() ?></span>
+                    </a>
+                    <a href="index.php" class="text-[#EBA1A1] hover:text-[#d97c7c] flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i> <span>Kembali</span>
                     </a>
                 </div>
             </div>
@@ -166,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-2xl font-bold text-gray-900">
+            <h2 class="text-2xl font-bold text-[#d97c7c]">
                 Form Pemesanan
             </h2>
             <p class="mt-1 text-sm text-gray-600">
@@ -198,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <!-- Item Details -->
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+        <div class="bg-white shadow overflow-hidden sm:rounded-xl mb-6 border border-[#fde8e8]">
             <div class="px-4 py-5 sm:p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Gambar dan Info Baju -->
@@ -235,11 +259,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="" method="POST" class="space-y-6">
                             <!-- Data Penyewa -->
                             <div>
-                                <h4 class="text-lg font-medium text-gray-900 mb-4">Data Penyewa</h4>
+                                <h4 class="text-lg font-medium text-[#d97c7c] mb-4">Data Penyewa</h4>
                                 
                                 <div class="space-y-4">
                                     <div>
-                                        <label for="nama" class="block text-sm font-medium text-gray-700">
+                                        <label for="nama" class="block text-sm font-medium text-[#EBA1A1]">
                                             Nama Lengkap
                                         </label>
                                         <input type="text" 
@@ -251,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
 
                                     <div>
-                                        <label for="hp" class="block text-sm font-medium text-gray-700">
+                                        <label for="hp" class="block text-sm font-medium text-[#EBA1A1]">
                                             Nomor HP
                                         </label>
                                         <input type="tel" 
@@ -263,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
 
                                     <div>
-                                        <label for="lokasi" class="block text-sm font-medium text-gray-700">
+                                        <label for="lokasi" class="block text-sm font-medium text-[#EBA1A1]">
                                             Alamat Lengkap
                                         </label>
                                         <textarea name="lokasi" 
@@ -285,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
 
                                     <div>
-                                        <label for="jenis_jaminan" class="block text-sm font-medium text-gray-700">
+                                        <label for="jenis_jaminan" class="block text-sm font-medium text-[#EBA1A1]">
                                             Jenis Jaminan <span class="text-red-500">*</span>
                                         </label>
                                         <select name="jenis_jaminan" 
@@ -305,11 +329,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <!-- Data Pemesanan -->
                             <div>
-                                <h4 class="text-lg font-medium text-gray-900 mb-4">Data Pemesanan</h4>
+                                <h4 class="text-lg font-medium text-[#d97c7c] mb-4">Data Pemesanan</h4>
                                 
                                 <div class="space-y-4">
                                     <div>
-                                        <label for="tanggal_sewa" class="block text-sm font-medium text-gray-700">
+                                        <label for="tanggal_sewa" class="block text-sm font-medium text-[#EBA1A1]">
                                             Tanggal Sewa
                                         </label>
                                         <input type="date" 
@@ -370,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
 
                                     <div>
-                                        <label for="jumlah" class="block text-sm font-medium text-gray-700">
+                                        <label for="jumlah" class="block text-sm font-medium text-[#EBA1A1]">
                                             Jumlah
                                         </label>
                                         <input type="number" 
@@ -380,6 +404,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                min="1"
                                                required
                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tambahkan ke Keranjang -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-medium text-[#d97c7c] mb-4">Opsi Pemesanan</h4>
+                                
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+                                    <div>
+                                        <button type="button" id="add-to-cart-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none w-full md:w-auto">
+                                            <i class="fas fa-shopping-cart mr-2"></i> Tambah ke Keranjang
+                                        </button>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <p>atau</p>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="w-full inline-flex justify-center py-2.5 px-6 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#EBA1A1] to-[#d97c7c] hover:from-[#d97c7c] hover:to-[#c56e6e] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#EBA1A1]" id="submit-order-btn">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            Buat Pesanan
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -411,7 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <!-- Submit Button -->
                             <div class="pt-4">
                                 <button type="submit"
-                                        class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        class="w-full inline-flex justify-center py-2.5 px-6 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#EBA1A1] to-[#d97c7c] hover:from-[#d97c7c] hover:to-[#c56e6e] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#EBA1A1]">
                                     <i class="fas fa-shopping-cart mr-2"></i>
                                     Buat Pesanan
                                 </button>
@@ -423,9 +469,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <!-- JavaScript untuk kalkulasi harga -->
+    <!-- JavaScript untuk kalkulasi harga dan tambah ke keranjang -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Tombol Tambah ke Keranjang
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            if (addToCartBtn) {
+                addToCartBtn.addEventListener('click', function() {
+                    const variantId = document.querySelector('select[name="variant_id"]').value;
+                    const quantity = document.querySelector('input[name="jumlah"]').value;
+                    const tanggalSewa = document.querySelector('input[name="tanggal_sewa"]').value;
+                    const tanggalKembali = document.querySelector('input[name="tanggal_kembali"]').value;
+                    
+                    if (!variantId || variantId <= 0) {
+                        alert('Silakan pilih ukuran baju terlebih dahulu');
+                        return;
+                    }
+                    
+                    if (!quantity || quantity <= 0) {
+                        alert('Jumlah harus lebih dari 0');
+                        return;
+                    }
+                    
+                    if (!tanggalSewa) {
+                        alert('Silakan pilih tanggal sewa');
+                        return;
+                    }
+                    
+                    if (!tanggalKembali) {
+                        alert('Silakan pilih tanggal kembali');
+                        return;
+                    }
+                    
+                    if (new Date(tanggalKembali) <= new Date(tanggalSewa)) {
+                        alert('Tanggal kembali harus setelah tanggal sewa');
+                        return;
+                    }
+                    
+                    // Kirim data ke add_to_cart.php
+                    const formData = new FormData();
+                    formData.append('variant_id', variantId);
+                    formData.append('quantity', quantity);
+                    formData.append('tanggal_sewa', tanggalSewa);
+                    formData.append('tanggal_kembali', tanggalKembali);
+                    
+                    // Tambahkan informasi pelanggan juga
+                    const namaElement = document.querySelector('input[name="nama"]');
+                    const hpElement = document.querySelector('input[name="hp"]');
+                    const lokasiElement = document.querySelector('textarea[name="lokasi"]');
+                    const jenisJaminanElement = document.querySelector('select[name="jenis_jaminan"]');
+                    
+                    // Ambil nilai jika elemen ditemukan
+                    if (namaElement) formData.append('nama', namaElement.value);
+                    if (hpElement) formData.append('hp', hpElement.value);
+                    if (lokasiElement) formData.append('lokasi', lokasiElement.value);
+                    if (jenisJaminanElement) formData.append('jenis_jaminan', jenisJaminanElement.value);
+                    
+                    fetch('add_to_cart.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (confirm(data.message + '. Apakah Anda ingin melihat keranjang?')) {
+                                window.location.href = 'cart.php';
+                            }
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat menambahkan item ke keranjang');
+                    });
+                });
+            }
             const variantSelect = document.getElementById('variant_id');
             const jumlahInput = document.getElementById('jumlah');
             const paymentInfo = document.getElementById('payment-info');
